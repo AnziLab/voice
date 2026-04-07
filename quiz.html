@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 피로도 동물은?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        #question-title, .option-btn {
+             font-family: 'Roboto', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .progress-bar-fill {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div id="app" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-10 transition-all duration-500">
+        
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">나의 피로도 동물 찾기</h1>
+            <p class="text-gray-600 mb-8">나의 생활 습관을 돌아보고, 어떤 동물과 닮았는지 확인해보세요!</p>
+            <img src="beaver.png" alt="테스트 시작 이미지" class="w-full max-w-md mx-auto rounded-lg mb-8">
+            <button id="start-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105">
+                Test Start!
+            </button>
+        </div>
+
+        <!-- 설문 진행 화면 -->
+        <div id="quiz-screen" class="hidden">
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold text-gray-500">Progress</span>
+                    <span id="progress-text" class="text-sm font-bold text-emerald-600"></span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full progress-bar-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="question-container" class="fade-in">
+                <h2 id="question-title" class="text-2xl font-bold text-gray-800 mb-6 text-center"></h2>
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 선택지 버튼이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div id="result-screen" class="hidden text-center">
+            <h2 class="text-xl font-bold text-gray-500 mb-2">당신의 피로도 동물은...</h2>
+            <h1 id="result-animal" class="text-4xl md:text-5xl font-extrabold mb-4"></h1>
+            <img id="result-image" src="" alt="결과 동물 이미지" class="w-full max-w-sm mx-auto rounded-xl shadow-lg mb-6">
+            <p id="result-description" class="text-lg text-gray-700 mb-6 whitespace-pre-line"></p>
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg">
+                <h3 class="font-bold text-emerald-800 mb-2">💡 Tip for You!</h3>
+                <p id="result-tip" class="text-emerald-700"></p>
+            </div>
+            <button id="restart-btn" class="mt-8 w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105">
+                테스트 다시하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "How many times a week do you go to after-school academies?",
+                options: [
+                    { text: "1-3 times a week", score: 0 },
+                    { text: "4 times a week or more", score: 2 },
+                    { text: "I don't go to any", score: 0 }
+                ]
+            },
+            {
+                question: "How often do you go to the cinema?",
+                options: [
+                    { text: "Once a month or less", score: 1 },
+                    { text: "Twice a month or more", score: 0 }
+                ]
+            },
+            {
+                question: "How many times a week do you hang out with friends (outside of school)?",
+                options: [
+                    { text: "Never", score: 2 },
+                    { text: "1-2 times a week", score: 1 },
+                    { text: "3 times a week or more", score: 0 }
+                ]
+            },
+            {
+                question: "How often do you play games (PC/mobile/console) in a week?",
+                options: [
+                    { text: "4 times a week or more", score: 1 },
+                    { text: "1-3 times a week", score: 0 },
+                    { text: "Almost never", score: 0 }
+                ]
+            },
+            {
+                question: "How often do you eat fast food or junk food?",
+                options: [
+                    { text: "3 times a week or more", score: 2 },
+                    { text: "1-2 times a week", score: 0 },
+                    { text: "Once a month or less", score: 0 }
+                ]
+            },
+            {
+                question: "How many times a week do you exercise (for at least 30 minutes)?",
+                options: [
+                    { text: "Not at all", score: 2 },
+                    { text: "1-2 times a week", score: 1 },
+                    { text: "3 times a week or more", score: 0 }
+                ]
+            },
+            {
+                question: "How often do you help with housework?",
+                options: [
+                    { text: "Almost never", score: 1 },
+                    { text: "Once a week or more", score: 0 }
+                ]
+            },
+            {
+                question: "How many times a year do you take a family trip (overnight)?",
+                options: [
+                    { text: "0-1 time a year", score: 1 },
+                    { text: "Twice a year or more", score: 0 }
+                ]
+            }
+        ];
+
+        const results = {
+            panda: {
+                animal: "다크서클 팬더 🐼",
+                image: "panda.png",
+                description: "너무 지쳐서 대나무 씹을 힘도 없을 지경!\n몸과 마음의 에너지가 모두 방전되었어요.",
+                tip: "You urgently need true rest. I suggest you recharge your mind and body with healthy habits!"
+            },
+            sloth: {
+                animal: "느긋한 나무늘보 🦥",
+                image: "sloth.png",
+                description: "느릿느릿~ 움직이는 게으름뱅이 나무늘보처럼\n에너지가 부족하지만 그럭저럭 버티고 있어요.",
+                tip: "I suggest you get enough sleep, or find joy through your favorite hobbies!"
+            },
+            beaver: {
+                animal: "바쁜 비버 🦫",
+                image: "beaver.png",
+                description: "바쁘게 댐을 짓는 비버처럼 할 일은 많지만,\n아직 눈은 반짝! 피로를 잘 관리하고 있네요.",
+                tip: "I recommend you keep up the good work balancing your studies and rest!"
+            },
+            otter: {
+                animal: "행복한 수달 🦦",
+                image: "otter.png",
+                description: "물 위에서 유유자적~ 조개를 쪼개 먹는 수달처럼\n몸과 마음이 모두 건강하고 행복한 상태예요!",
+                tip: "I suggest you share your healthy lifestyle secrets with your friends!"
+            }
+        };
+
+        let currentQuestionIndex = 0;
+        let totalScore = 0;
+
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const questionTitle = document.getElementById('question-title');
+        const optionsContainer = document.getElementById('options-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        startBtn.addEventListener('click', startQuiz);
+        restartBtn.addEventListener('click', restartQuiz);
+
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            totalScore = 0;
+            showQuestion();
+        }
+        
+        function restartQuiz() {
+            resultScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        function showQuestion() {
+            const questionData = questions[currentQuestionIndex];
+            
+            questionTitle.textContent = '';
+            optionsContainer.innerHTML = '';
+            
+            const questionContainer = document.getElementById('question-container');
+            questionContainer.classList.remove('fade-in');
+            void questionContainer.offsetWidth;
+            questionContainer.classList.add('fade-in');
+
+            questionTitle.textContent = `Q${currentQuestionIndex + 1}. ${questionData.question}`;
+            
+            questionData.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.text;
+                button.classList.add('w-full', 'bg-gray-50', 'border', 'border-gray-300', 'hover:bg-emerald-100', 'hover:border-emerald-400', 'text-gray-700', 'font-semibold', 'py-4', 'px-4', 'rounded-lg', 'transition-all', 'duration-200', 'text-left', 'md:text-center', 'option-btn');
+                button.onclick = () => selectOption(option.score);
+                optionsContainer.appendChild(button);
+            });
+
+            updateProgress();
+        }
+
+        function selectOption(score) {
+            totalScore += score;
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function updateProgress() {
+            const progressPercentage = ((currentQuestionIndex) / questions.length) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+            progressText.textContent = `${currentQuestionIndex} / ${questions.length}`;
+        }
+        
+        function showResult() {
+            progressBar.style.width = '100%';
+            progressText.textContent = `${questions.length} / ${questions.length}`;
+
+            let resultData;
+            if (totalScore >= 8) {
+                resultData = results.panda;
+            } else if (totalScore >= 5) {
+                resultData = results.sloth;
+            } else if (totalScore >= 2) {
+                resultData = results.beaver;
+            } else {
+                resultData = results.otter;
+            }
+
+            document.getElementById('result-animal').textContent = resultData.animal;
+            document.getElementById('result-image').src = resultData.image;
+            document.getElementById('result-image').alt = resultData.animal;
+            document.getElementById('result-description').textContent = resultData.description;
+            document.getElementById('result-tip').textContent = resultData.tip;
+
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            resultScreen.classList.add('fade-in');
+        }
+    </script>
+</body>
+</html>

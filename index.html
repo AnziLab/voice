@@ -3,267 +3,540 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나의 피로도 동물은?</title>
+    <title>테마주 스윙 트래커</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-        }
-        #question-title, .option-btn {
-             font-family: 'Roboto', sans-serif;
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .progress-bar-fill {
-            transition: width 0.5s ease-in-out;
-        }
+        * { font-family: 'Noto Sans KR', sans-serif; }
+        .tab-active { border-bottom: 3px solid #10b981; color: #10b981; font-weight: 700; }
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .status-watching { background: #dbeafe; color: #1d4ed8; }
+        .status-ready { background: #fef3c7; color: #b45309; }
+        .status-holding { background: #d1fae5; color: #047857; }
+        .status-sold { background: #f3f4f6; color: #6b7280; }
+        input, textarea, select { font-size: 16px !important; }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div id="app" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-10 transition-all duration-500">
-        
-        <!-- 시작 화면 -->
-        <div id="start-screen" class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">나의 피로도 동물 찾기</h1>
-            <p class="text-gray-600 mb-8">나의 생활 습관을 돌아보고, 어떤 동물과 닮았는지 확인해보세요!</p>
-            <img src="beaver.png" alt="테스트 시작 이미지" class="w-full max-w-md mx-auto rounded-lg mb-8">
-            <button id="start-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105">
-                Test Start!
-            </button>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 class="text-lg font-bold text-gray-800">📈 테마주 스윙 트래커</h1>
+            <button onclick="openSettings()" class="text-gray-400 hover:text-gray-600 text-xl">⚙️</button>
         </div>
+        <nav class="max-w-lg mx-auto flex border-b">
+            <button class="tab-btn flex-1 py-3 text-sm text-center text-gray-500 tab-active" data-tab="routine">루틴</button>
+            <button class="tab-btn flex-1 py-3 text-sm text-center text-gray-500" data-tab="watchlist">관심종목</button>
+            <button class="tab-btn flex-1 py-3 text-sm text-center text-gray-500" data-tab="trades">매매일지</button>
+        </nav>
+    </header>
 
-        <!-- 설문 진행 화면 -->
-        <div id="quiz-screen" class="hidden">
-            <div class="mb-6">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold text-gray-500">Progress</span>
-                    <span id="progress-text" class="text-sm font-bold text-emerald-600"></span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full progress-bar-fill" style="width: 0%"></div>
+    <main class="max-w-lg mx-auto px-4 py-4 pb-24">
+        <!-- 루틴 탭 -->
+        <section id="tab-routine" class="tab-content fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-bold text-gray-700" id="routine-date"></h2>
+                <span id="routine-score" class="text-sm font-semibold text-emerald-600"></span>
+            </div>
+            <div class="space-y-3" id="routine-list"></div>
+            <div class="mt-4">
+                <textarea id="routine-memo" placeholder="오늘의 시장 메모..." rows="2"
+                    class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none resize-none"></textarea>
+            </div>
+        </section>
+
+        <!-- 관심종목 탭 -->
+        <section id="tab-watchlist" class="tab-content hidden fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-bold text-gray-700">관심종목</h2>
+                <button onclick="openAddStock()" class="bg-emerald-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-600">+ 추가</button>
+            </div>
+            <div class="flex gap-2 mb-3 overflow-x-auto">
+                <button class="filter-btn text-xs px-3 py-1 rounded-full bg-gray-800 text-white" data-filter="all">전체</button>
+                <button class="filter-btn text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-600" data-filter="watching">감시중</button>
+                <button class="filter-btn text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-600" data-filter="ready">매수대기</button>
+                <button class="filter-btn text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-600" data-filter="holding">보유중</button>
+                <button class="filter-btn text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-600" data-filter="sold">매도완료</button>
+            </div>
+            <div class="space-y-3" id="watchlist-container"></div>
+            <p id="watchlist-empty" class="text-center text-gray-400 text-sm py-8 hidden">관심종목을 추가하세요</p>
+        </section>
+
+        <!-- 매매일지 탭 -->
+        <section id="tab-trades" class="tab-content hidden fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-bold text-gray-700">매매일지</h2>
+                <button onclick="openAddTrade()" class="bg-emerald-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-600">+ 기록</button>
+            </div>
+            <div id="trades-summary" class="bg-white rounded-xl p-4 mb-4 shadow-sm hidden">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div><p class="text-xs text-gray-500">총 매매</p><p id="stat-total" class="font-bold text-gray-800">0</p></div>
+                    <div><p class="text-xs text-gray-500">승률</p><p id="stat-winrate" class="font-bold text-emerald-600">0%</p></div>
+                    <div><p class="text-xs text-gray-500">총 수익</p><p id="stat-profit" class="font-bold text-gray-800">0</p></div>
                 </div>
             </div>
+            <div class="space-y-3" id="trades-container"></div>
+            <p id="trades-empty" class="text-center text-gray-400 text-sm py-8 hidden">매매 기록을 추가하세요</p>
+        </section>
+    </main>
 
-            <div id="question-container" class="fade-in">
-                <h2 id="question-title" class="text-2xl font-bold text-gray-800 mb-6 text-center"></h2>
-                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- 선택지 버튼이 여기에 동적으로 추가됩니다 -->
-                </div>
+    <!-- 모달: 종목 추가 -->
+    <div id="modal-stock" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-stock-title" class="font-bold text-gray-800">종목 추가</h3>
+                <button onclick="closeModal('modal-stock')" class="text-gray-400 text-2xl">&times;</button>
+            </div>
+            <input type="hidden" id="stock-edit-id">
+            <div class="space-y-3">
+                <input id="stock-name" placeholder="종목명" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                <input id="stock-theme" placeholder="테마 (예: AI, 반도체)" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                <select id="stock-status" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                    <option value="watching">감시중</option>
+                    <option value="ready">매수대기</option>
+                    <option value="holding">보유중</option>
+                    <option value="sold">매도완료</option>
+                </select>
+                <input id="stock-price" placeholder="기준가 / 매수가 (선택)" type="number" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                <textarea id="stock-memo" placeholder="메모 (차트 특징, 매수 조건 등)" rows="2" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none resize-none"></textarea>
+                <button onclick="saveStock()" class="w-full bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600">저장</button>
             </div>
         </div>
+    </div>
 
-        <!-- 결과 화면 -->
-        <div id="result-screen" class="hidden text-center">
-            <h2 class="text-xl font-bold text-gray-500 mb-2">당신의 피로도 동물은...</h2>
-            <h1 id="result-animal" class="text-4xl md:text-5xl font-extrabold mb-4"></h1>
-            <img id="result-image" src="" alt="결과 동물 이미지" class="w-full max-w-sm mx-auto rounded-xl shadow-lg mb-6">
-            <p id="result-description" class="text-lg text-gray-700 mb-6 whitespace-pre-line"></p>
-            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg">
-                <h3 class="font-bold text-emerald-800 mb-2">💡 Tip for You!</h3>
-                <p id="result-tip" class="text-emerald-700"></p>
+    <!-- 모달: 매매 기록 -->
+    <div id="modal-trade" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-gray-800">매매 기록</h3>
+                <button onclick="closeModal('modal-trade')" class="text-gray-400 text-2xl">&times;</button>
             </div>
-            <button id="restart-btn" class="mt-8 w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105">
-                테스트 다시하기
-            </button>
+            <input type="hidden" id="trade-edit-id">
+            <div class="space-y-3">
+                <input id="trade-name" placeholder="종목명" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                <div class="grid grid-cols-2 gap-3">
+                    <input id="trade-buy" placeholder="매수가" type="number" class="border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                    <input id="trade-sell" placeholder="매도가" type="number" class="border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input id="trade-qty" placeholder="수량" type="number" class="border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                    <input id="trade-date" type="date" class="border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none">
+                </div>
+                <textarea id="trade-memo" placeholder="매매 근거 / 복기" rows="2" class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:outline-none resize-none"></textarea>
+                <button onclick="saveTrade()" class="w-full bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 설정 -->
+    <div id="modal-settings" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-gray-800">설정</h3>
+                <button onclick="closeModal('modal-settings')" class="text-gray-400 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-3">
+                <button onclick="exportData()" class="w-full bg-blue-500 text-white font-semibold py-3 rounded-lg hover:bg-blue-600">📥 data.json 내보내기</button>
+                <label class="w-full block bg-orange-500 text-white font-semibold py-3 rounded-lg hover:bg-orange-600 text-center cursor-pointer">
+                    📤 data.json 가져오기
+                    <input type="file" accept=".json" onchange="importData(event)" class="hidden">
+                </label>
+                <button onclick="if(confirm('모든 데이터를 삭제할까요?')){localStorage.removeItem('swingData');location.reload()}" class="w-full bg-red-500 text-white font-semibold py-3 rounded-lg hover:bg-red-600">🗑 데이터 초기화</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const questions = [
-            {
-                question: "How many times a week do you go to after-school academies?",
-                options: [
-                    { text: "1-3 times a week", score: 0 },
-                    { text: "4 times a week or more", score: 2 },
-                    { text: "I don't go to any", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you go to the cinema?",
-                options: [
-                    { text: "Once a month or less", score: 1 },
-                    { text: "Twice a month or more", score: 0 }
-                ]
-            },
-            {
-                question: "How many times a week do you hang out with friends (outside of school)?",
-                options: [
-                    { text: "Never", score: 2 },
-                    { text: "1-2 times a week", score: 1 },
-                    { text: "3 times a week or more", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you play games (PC/mobile/console) in a week?",
-                options: [
-                    { text: "4 times a week or more", score: 1 },
-                    { text: "1-3 times a week", score: 0 },
-                    { text: "Almost never", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you eat fast food or junk food?",
-                options: [
-                    { text: "3 times a week or more", score: 2 },
-                    { text: "1-2 times a week", score: 0 },
-                    { text: "Once a month or less", score: 0 }
-                ]
-            },
-            {
-                question: "How many times a week do you exercise (for at least 30 minutes)?",
-                options: [
-                    { text: "Not at all", score: 2 },
-                    { text: "1-2 times a week", score: 1 },
-                    { text: "3 times a week or more", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you help with housework?",
-                options: [
-                    { text: "Almost never", score: 1 },
-                    { text: "Once a week or more", score: 0 }
-                ]
-            },
-            {
-                question: "How many times a year do you take a family trip (overnight)?",
-                options: [
-                    { text: "0-1 time a year", score: 1 },
-                    { text: "Twice a year or more", score: 0 }
-                ]
-            }
-        ];
+    // ─── 데이터 관리 ───
+    const DATA_KEY = 'swingData';
+    const ROUTINE_ITEMS = [
+        { id: 'r1', label: 'mkwatch 주도테마 확인' },
+        { id: 'r2', label: '대장주 선별 → 관심종목 등록' },
+        { id: 'r3', label: '관심종목 일봉 차트 체크' },
+        { id: 'r4', label: '매수 조건 확인 (횡보/거래량↓/바닥권)' },
+        { id: 'r5', label: '매매 실행 or 관망 판단 기록' },
+    ];
 
-        const results = {
-            panda: {
-                animal: "다크서클 팬더 🐼",
-                image: "panda.png",
-                description: "너무 지쳐서 대나무 씹을 힘도 없을 지경!\n몸과 마음의 에너지가 모두 방전되었어요.",
-                tip: "You urgently need true rest. I suggest you recharge your mind and body with healthy habits!"
-            },
-            sloth: {
-                animal: "느긋한 나무늘보 🦥",
-                image: "sloth.png",
-                description: "느릿느릿~ 움직이는 게으름뱅이 나무늘보처럼\n에너지가 부족하지만 그럭저럭 버티고 있어요.",
-                tip: "I suggest you get enough sleep, or find joy through your favorite hobbies!"
-            },
-            beaver: {
-                animal: "바쁜 비버 🦫",
-                image: "beaver.png",
-                description: "바쁘게 댐을 짓는 비버처럼 할 일은 많지만,\n아직 눈은 반짝! 피로를 잘 관리하고 있네요.",
-                tip: "I recommend you keep up the good work balancing your studies and rest!"
-            },
-            otter: {
-                animal: "행복한 수달 🦦",
-                image: "otter.png",
-                description: "물 위에서 유유자적~ 조개를 쪼개 먹는 수달처럼\n몸과 마음이 모두 건강하고 행복한 상태예요!",
-                tip: "I suggest you share your healthy lifestyle secrets with your friends!"
-            }
+    function getToday() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function loadData() {
+        const raw = localStorage.getItem(DATA_KEY);
+        if (raw) return JSON.parse(raw);
+        return { watchlist: [], trades: [], routineLog: {} };
+    }
+
+    function saveData(data) {
+        localStorage.setItem(DATA_KEY, JSON.stringify(data));
+    }
+
+    // 최초 로드: data.json이 있으면 seed
+    async function initData() {
+        if (!localStorage.getItem(DATA_KEY)) {
+            try {
+                const res = await fetch('data.json');
+                if (res.ok) {
+                    const seed = await res.json();
+                    saveData(seed);
+                }
+            } catch (e) { /* ignore */ }
+        }
+        renderAll();
+    }
+
+    // ─── 탭 전환 ───
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+            btn.classList.add('tab-active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+        });
+    });
+
+    // ─── 모달 ───
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function openSettings() { document.getElementById('modal-settings').classList.remove('hidden'); }
+
+    // ─── 루틴 ───
+    function renderRoutine() {
+        const data = loadData();
+        const today = getToday();
+        if (!data.routineLog[today]) data.routineLog[today] = { checks: {}, memo: '' };
+        saveData(data);
+
+        const log = data.routineLog[today];
+        const list = document.getElementById('routine-list');
+        list.innerHTML = '';
+
+        document.getElementById('routine-date').textContent = formatDate(today) + ' 루틴';
+
+        let done = 0;
+        ROUTINE_ITEMS.forEach(item => {
+            const checked = log.checks[item.id] || false;
+            if (checked) done++;
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:bg-gray-50 transition';
+            div.innerHTML = `
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}">
+                    ${checked ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                </div>
+                <span class="text-sm ${checked ? 'text-gray-400 line-through' : 'text-gray-700'}">${item.label}</span>
+            `;
+            div.onclick = () => toggleRoutine(item.id);
+            list.appendChild(div);
+        });
+
+        document.getElementById('routine-score').textContent = `${done}/${ROUTINE_ITEMS.length} 완료`;
+        document.getElementById('routine-memo').value = log.memo || '';
+    }
+
+    function toggleRoutine(id) {
+        const data = loadData();
+        const today = getToday();
+        if (!data.routineLog[today]) data.routineLog[today] = { checks: {}, memo: '' };
+        data.routineLog[today].checks[id] = !data.routineLog[today].checks[id];
+        saveData(data);
+        renderRoutine();
+    }
+
+    document.getElementById('routine-memo').addEventListener('input', (e) => {
+        const data = loadData();
+        const today = getToday();
+        if (!data.routineLog[today]) data.routineLog[today] = { checks: {}, memo: '' };
+        data.routineLog[today].memo = e.target.value;
+        saveData(data);
+    });
+
+    // ─── 관심종목 ───
+    let currentFilter = 'all';
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => { b.className = 'filter-btn text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-600'; });
+            btn.className = 'filter-btn text-xs px-3 py-1 rounded-full bg-gray-800 text-white';
+            currentFilter = btn.dataset.filter;
+            renderWatchlist();
+        });
+    });
+
+    function openAddStock() {
+        document.getElementById('stock-edit-id').value = '';
+        document.getElementById('stock-name').value = '';
+        document.getElementById('stock-theme').value = '';
+        document.getElementById('stock-status').value = 'watching';
+        document.getElementById('stock-price').value = '';
+        document.getElementById('stock-memo').value = '';
+        document.getElementById('modal-stock-title').textContent = '종목 추가';
+        document.getElementById('modal-stock').classList.remove('hidden');
+    }
+
+    function editStock(id) {
+        const data = loadData();
+        const s = data.watchlist.find(x => x.id === id);
+        if (!s) return;
+        document.getElementById('stock-edit-id').value = s.id;
+        document.getElementById('stock-name').value = s.name;
+        document.getElementById('stock-theme').value = s.theme || '';
+        document.getElementById('stock-status').value = s.status;
+        document.getElementById('stock-price').value = s.price || '';
+        document.getElementById('stock-memo').value = s.memo || '';
+        document.getElementById('modal-stock-title').textContent = '종목 수정';
+        document.getElementById('modal-stock').classList.remove('hidden');
+    }
+
+    function saveStock() {
+        const editId = document.getElementById('stock-edit-id').value;
+        const name = document.getElementById('stock-name').value.trim();
+        if (!name) return alert('종목명을 입력하세요');
+
+        const data = loadData();
+        const stock = {
+            id: editId || uid(),
+            name,
+            theme: document.getElementById('stock-theme').value.trim(),
+            status: document.getElementById('stock-status').value,
+            price: document.getElementById('stock-price').value ? Number(document.getElementById('stock-price').value) : null,
+            memo: document.getElementById('stock-memo').value.trim(),
+            addedAt: editId ? (data.watchlist.find(x => x.id === editId)?.addedAt || getToday()) : getToday(),
+            updatedAt: getToday()
         };
 
-        let currentQuestionIndex = 0;
-        let totalScore = 0;
-
-        const startScreen = document.getElementById('start-screen');
-        const quizScreen = document.getElementById('quiz-screen');
-        const resultScreen = document.getElementById('result-screen');
-        
-        const startBtn = document.getElementById('start-btn');
-        const restartBtn = document.getElementById('restart-btn');
-
-        const questionTitle = document.getElementById('question-title');
-        const optionsContainer = document.getElementById('options-container');
-        const progressBar = document.getElementById('progress-bar');
-        const progressText = document.getElementById('progress-text');
-
-        startBtn.addEventListener('click', startQuiz);
-        restartBtn.addEventListener('click', restartQuiz);
-
-        function startQuiz() {
-            startScreen.classList.add('hidden');
-            quizScreen.classList.remove('hidden');
-            currentQuestionIndex = 0;
-            totalScore = 0;
-            showQuestion();
-        }
-        
-        function restartQuiz() {
-            resultScreen.classList.add('hidden');
-            startScreen.classList.remove('hidden');
+        if (editId) {
+            const idx = data.watchlist.findIndex(x => x.id === editId);
+            if (idx >= 0) data.watchlist[idx] = stock;
+        } else {
+            data.watchlist.unshift(stock);
         }
 
-        function showQuestion() {
-            const questionData = questions[currentQuestionIndex];
-            
-            questionTitle.textContent = '';
-            optionsContainer.innerHTML = '';
-            
-            const questionContainer = document.getElementById('question-container');
-            questionContainer.classList.remove('fade-in');
-            void questionContainer.offsetWidth;
-            questionContainer.classList.add('fade-in');
+        saveData(data);
+        closeModal('modal-stock');
+        renderWatchlist();
+    }
 
-            questionTitle.textContent = `Q${currentQuestionIndex + 1}. ${questionData.question}`;
-            
-            questionData.options.forEach(option => {
-                const button = document.createElement('button');
-                button.textContent = option.text;
-                button.classList.add('w-full', 'bg-gray-50', 'border', 'border-gray-300', 'hover:bg-emerald-100', 'hover:border-emerald-400', 'text-gray-700', 'font-semibold', 'py-4', 'px-4', 'rounded-lg', 'transition-all', 'duration-200', 'text-left', 'md:text-center', 'option-btn');
-                button.onclick = () => selectOption(option.score);
-                optionsContainer.appendChild(button);
-            });
+    function deleteStock(id) {
+        if (!confirm('삭제할까요?')) return;
+        const data = loadData();
+        data.watchlist = data.watchlist.filter(x => x.id !== id);
+        saveData(data);
+        renderWatchlist();
+    }
 
-            updateProgress();
+    const STATUS_LABELS = { watching: '감시중', ready: '매수대기', holding: '보유중', sold: '매도완료' };
+
+    function renderWatchlist() {
+        const data = loadData();
+        const container = document.getElementById('watchlist-container');
+        const emptyMsg = document.getElementById('watchlist-empty');
+        container.innerHTML = '';
+
+        let items = data.watchlist;
+        if (currentFilter !== 'all') items = items.filter(x => x.status === currentFilter);
+
+        if (items.length === 0) {
+            emptyMsg.classList.remove('hidden');
+            return;
+        }
+        emptyMsg.classList.add('hidden');
+
+        items.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-xl p-4 shadow-sm fade-in';
+            div.innerHTML = `
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <span class="font-bold text-gray-800">${s.name}</span>
+                        ${s.theme ? `<span class="ml-2 text-xs text-gray-400">#${s.theme}</span>` : ''}
+                    </div>
+                    <span class="text-xs px-2 py-0.5 rounded-full status-${s.status}">${STATUS_LABELS[s.status]}</span>
+                </div>
+                ${s.price ? `<p class="text-sm text-gray-500">기준가 <span class="font-semibold text-gray-700">${s.price.toLocaleString()}원</span></p>` : ''}
+                ${s.memo ? `<p class="text-xs text-gray-400 mt-1">${s.memo}</p>` : ''}
+                <div class="flex gap-2 mt-3 border-t pt-2">
+                    <button onclick="editStock('${s.id}')" class="text-xs text-blue-500 hover:underline">수정</button>
+                    <button onclick="deleteStock('${s.id}')" class="text-xs text-red-400 hover:underline">삭제</button>
+                    <span class="text-xs text-gray-300 ml-auto">${s.addedAt}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // ─── 매매일지 ───
+    function openAddTrade() {
+        document.getElementById('trade-edit-id').value = '';
+        document.getElementById('trade-name').value = '';
+        document.getElementById('trade-buy').value = '';
+        document.getElementById('trade-sell').value = '';
+        document.getElementById('trade-qty').value = '';
+        document.getElementById('trade-date').value = getToday();
+        document.getElementById('trade-memo').value = '';
+        document.getElementById('modal-trade').classList.remove('hidden');
+    }
+
+    function saveTrade() {
+        const editId = document.getElementById('trade-edit-id').value;
+        const name = document.getElementById('trade-name').value.trim();
+        const buy = Number(document.getElementById('trade-buy').value);
+        const sell = Number(document.getElementById('trade-sell').value);
+        const qty = Number(document.getElementById('trade-qty').value) || 1;
+
+        if (!name || !buy) return alert('종목명과 매수가를 입력하세요');
+
+        const data = loadData();
+        const profit = sell ? (sell - buy) * qty : 0;
+        const profitPct = sell ? (((sell - buy) / buy) * 100).toFixed(2) : null;
+
+        const trade = {
+            id: editId || uid(),
+            name,
+            buyPrice: buy,
+            sellPrice: sell || null,
+            quantity: qty,
+            profit,
+            profitPct: profitPct ? Number(profitPct) : null,
+            date: document.getElementById('trade-date').value || getToday(),
+            memo: document.getElementById('trade-memo').value.trim()
+        };
+
+        if (editId) {
+            const idx = data.trades.findIndex(x => x.id === editId);
+            if (idx >= 0) data.trades[idx] = trade;
+        } else {
+            data.trades.unshift(trade);
         }
 
-        function selectOption(score) {
-            totalScore += score;
-            currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                showQuestion();
-            } else {
-                showResult();
-            }
+        saveData(data);
+        closeModal('modal-trade');
+        renderTrades();
+    }
+
+    function editTrade(id) {
+        const data = loadData();
+        const t = data.trades.find(x => x.id === id);
+        if (!t) return;
+        document.getElementById('trade-edit-id').value = t.id;
+        document.getElementById('trade-name').value = t.name;
+        document.getElementById('trade-buy').value = t.buyPrice;
+        document.getElementById('trade-sell').value = t.sellPrice || '';
+        document.getElementById('trade-qty').value = t.quantity;
+        document.getElementById('trade-date').value = t.date;
+        document.getElementById('trade-memo').value = t.memo || '';
+        document.getElementById('modal-trade').classList.remove('hidden');
+    }
+
+    function deleteTrade(id) {
+        if (!confirm('삭제할까요?')) return;
+        const data = loadData();
+        data.trades = data.trades.filter(x => x.id !== id);
+        saveData(data);
+        renderTrades();
+    }
+
+    function renderTrades() {
+        const data = loadData();
+        const container = document.getElementById('trades-container');
+        const emptyMsg = document.getElementById('trades-empty');
+        const summary = document.getElementById('trades-summary');
+        container.innerHTML = '';
+
+        if (data.trades.length === 0) {
+            emptyMsg.classList.remove('hidden');
+            summary.classList.add('hidden');
+            return;
         }
+        emptyMsg.classList.add('hidden');
+        summary.classList.remove('hidden');
 
-        function updateProgress() {
-            const progressPercentage = ((currentQuestionIndex) / questions.length) * 100;
-            progressBar.style.width = `${progressPercentage}%`;
-            progressText.textContent = `${currentQuestionIndex} / ${questions.length}`;
-        }
-        
-        function showResult() {
-            progressBar.style.width = '100%';
-            progressText.textContent = `${questions.length} / ${questions.length}`;
+        // 통계
+        const closed = data.trades.filter(t => t.sellPrice);
+        const wins = closed.filter(t => t.profit > 0);
+        const totalProfit = closed.reduce((s, t) => s + t.profit, 0);
+        document.getElementById('stat-total').textContent = data.trades.length;
+        document.getElementById('stat-winrate').textContent = closed.length ? Math.round((wins.length / closed.length) * 100) + '%' : '-';
+        const profitEl = document.getElementById('stat-profit');
+        profitEl.textContent = (totalProfit >= 0 ? '+' : '') + totalProfit.toLocaleString() + '원';
+        profitEl.className = 'font-bold ' + (totalProfit >= 0 ? 'text-emerald-600' : 'text-red-500');
 
-            let resultData;
-            if (totalScore >= 8) {
-                resultData = results.panda;
-            } else if (totalScore >= 5) {
-                resultData = results.sloth;
-            } else if (totalScore >= 2) {
-                resultData = results.beaver;
-            } else {
-                resultData = results.otter;
-            }
+        data.trades.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-xl p-4 shadow-sm fade-in';
+            const pColor = t.profit > 0 ? 'text-emerald-600' : t.profit < 0 ? 'text-red-500' : 'text-gray-500';
+            div.innerHTML = `
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-gray-800">${t.name}</span>
+                    <span class="text-xs text-gray-400">${t.date}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                    <span class="text-gray-500">매수 <span class="font-semibold text-gray-700">${t.buyPrice.toLocaleString()}</span></span>
+                    ${t.sellPrice ? `<span class="text-gray-300">→</span><span class="text-gray-500">매도 <span class="font-semibold text-gray-700">${t.sellPrice.toLocaleString()}</span></span>` : '<span class="text-xs text-yellow-500 font-semibold">보유중</span>'}
+                    <span class="text-xs text-gray-400">×${t.quantity}</span>
+                </div>
+                ${t.sellPrice ? `<p class="text-sm font-bold mt-1 ${pColor}">${t.profit >= 0 ? '+' : ''}${t.profit.toLocaleString()}원 (${t.profitPct >= 0 ? '+' : ''}${t.profitPct}%)</p>` : ''}
+                ${t.memo ? `<p class="text-xs text-gray-400 mt-1">${t.memo}</p>` : ''}
+                <div class="flex gap-2 mt-2 border-t pt-2">
+                    <button onclick="editTrade('${t.id}')" class="text-xs text-blue-500 hover:underline">수정</button>
+                    <button onclick="deleteTrade('${t.id}')" class="text-xs text-red-400 hover:underline">삭제</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
 
-            document.getElementById('result-animal').textContent = resultData.animal;
-            document.getElementById('result-image').src = resultData.image;
-            document.getElementById('result-image').alt = resultData.animal;
-            document.getElementById('result-description').textContent = resultData.description;
-            document.getElementById('result-tip').textContent = resultData.tip;
+    // ─── Export / Import ───
+    function exportData() {
+        const data = loadData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'data.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 
-            quizScreen.classList.add('hidden');
-            resultScreen.classList.remove('hidden');
-            resultScreen.classList.add('fade-in');
-        }
+    function importData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.watchlist && data.trades) {
+                    saveData(data);
+                    closeModal('modal-settings');
+                    renderAll();
+                    alert('데이터를 불러왔습니다!');
+                } else {
+                    alert('올바른 data.json 형식이 아닙니다.');
+                }
+            } catch { alert('JSON 파싱 오류'); }
+        };
+        reader.readAsText(file);
+    }
+
+    // ─── 유틸 ───
+    function formatDate(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        return `${d.getMonth() + 1}/${d.getDate()} (${days[d.getDay()]})`;
+    }
+
+    function renderAll() {
+        renderRoutine();
+        renderWatchlist();
+        renderTrades();
+    }
+
+    // ─── 초기화 ───
+    initData();
     </script>
 </body>
 </html>
