@@ -1,200 +1,938 @@
-<!DOCTYPE html>
+  <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voice Lab - 발성/포먼트 트레이너</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: "Pretendard", "Noto Sans KR", sans-serif; }
-    .meter { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
-    .meter > span { display:block; height:100%; transition: width .2s ease; }
-    canvas { background: #0b1220; border-radius: 12px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>보컬 연습 계기판</title>
+
+<style>
+:root{
+--bg:#0c0f14;
+--panel:#151a22;
+--panel2:#10141b;
+--text:#f4f7fb;
+--muted:#9aa6b8;
+--line:#273142;
+--accent:#9ee7ff;
+--good:#a8ffbf;
+}
+
+*{box-sizing:border-box}
+html,body{
+margin:0;
+height:100%;
+overflow:hidden;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+background:radial-gradient(circle at 20% 0%,#22334d,#0c0f14 42%);
+color:var(--text);
+}
+
+.wrap{
+height:100dvh;
+display:grid;
+grid-template-rows:auto 1fr 1fr 1.25fr;
+gap:6px;
+padding:8px;
+max-width:1200px;
+margin:auto;
+}
+
+.card{
+background:rgba(21,26,34,.92);
+border:1px solid var(--line);
+border-radius:16px;
+padding:10px;
+overflow:hidden;
+}
+
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:8px;
+}
+
+h1{
+margin:0;
+font-size:15px;
+}
+
+button{
+border:0;
+border-radius:12px;
+padding:10px 14px;
+font-weight:900;
+background:linear-gradient(135deg,var(--accent),#c9ffd7);
+color:#071018;
+}
+
+.top{
+display:grid;
+grid-template-columns:1.2fr .8fr;
+gap:6px;
+}
+
+.result{
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+background:linear-gradient(180deg,#18202b,#111720);
+}
+
+.label{
+font-size:10px;
+font-weight:800;
+letter-spacing:.08em;
+color:var(--muted);
+text-transform:uppercase;
+}
+
+#type{
+font-size:clamp(34px,7vw,72px);
+font-weight:1000;
+line-height:.9;
+letter-spacing:-.07em;
+margin:4px 0;
+}
+
+#reason{
+font-size:12px;
+line-height:1.2;
+color:var(--muted);
+}
+
+.stats{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:6px;
+}
+
+.stat{
+background:var(--panel2);
+border:1px solid var(--line);
+border-radius:12px;
+padding:8px;
+}
+
+.stat b{
+display:block;
+margin-top:2px;
+font-size:clamp(18px,3vw,30px);
+letter-spacing:-.04em;
+}
+
+.meters{
+display:grid;
+gap:6px;
+align-content:center;
+}
+
+.meterTop{
+display:flex;
+justify-content:space-between;
+font-size:12px;
+color:var(--muted);
+font-weight:800;
+}
+
+.bar{
+height:12px;
+background:#070a0f;
+border:1px solid var(--line);
+border-radius:999px;
+overflow:hidden;
+}
+
+.fill{
+height:100%;
+width:0%;
+background:linear-gradient(90deg,var(--accent),var(--good));
+}
+
+.feedback{
+display:grid;
+gap:6px;
+}
+
+.msg{
+padding:8px;
+font-size:12px;
+line-height:1.2;
+border-radius:12px;
+background:var(--panel2);
+border:1px solid var(--line);
+}
+
+.trainer{
+display:grid;
+grid-template-rows:auto auto 1fr auto;
+gap:6px;
+}
+
+.controls{
+display:flex;
+gap:6px;
+align-items:center;
+flex-wrap:wrap;
+}
+
+select{
+background:#090d13;
+color:var(--text);
+border:1px solid var(--line);
+border-radius:10px;
+padding:7px;
+font-size:13px;
+font-weight:800;
+}
+
+.target{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:5px;
+}
+
+.mini{
+background:var(--panel2);
+border:1px solid var(--line);
+border-radius:10px;
+padding:5px;
+text-align:center;
+}
+
+.mini span{
+display:block;
+font-size:9px;
+color:var(--muted);
+font-weight:800;
+}
+
+.mini b{
+font-size:14px;
+}
+
+canvas{
+width:100%;
+height:100%;
+background:#080b10;
+border-radius:14px;
+border:1px solid var(--line);
+}
+
+#tip{
+margin:0;
+font-size:12px;
+font-weight:900;
+color:var(--accent);
+line-height:1.2;
+}
+
+@media(max-width:850px){
+.wrap{
+grid-template-rows:28% 24% 18% 30%;
+}
+#type{
+font-size:34px;
+}
+}
+</style>
 </head>
-<body class="bg-slate-100 min-h-screen py-8 px-4">
-  <main class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-10 space-y-8">
-    <header>
-      <h1 class="text-3xl font-bold text-slate-900">🎙️ Voice Lab (정적 웹앱)</h1>
-      <p class="mt-2 text-slate-600">마이크 소리를 기반으로 <b>진성/믹스/두성/가성</b>을 추정하고, 숨소리·접촉감·안정성 피드백과 모음 포먼트(F1/F2) 튜닝 연습을 제공합니다.</p>
-      <p class="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">의학적/임상 진단이 아닌 연습용 추정 도구입니다. 실제 보컬 레슨과 함께 사용하세요.</p>
-    </header>
 
-    <section class="grid lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 space-y-4">
-        <div class="flex flex-wrap gap-3">
-          <button id="startBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">마이크 시작</button>
-          <button id="stopBtn" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800" disabled>중지</button>
-          <button id="sampleBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">발음 카운트다운</button>
-          <input id="phoneme" class="px-3 py-2 border rounded-lg" value="아" />
-        </div>
-        <canvas id="scope" width="900" height="240" class="w-full h-56"></canvas>
-      </div>
+<body>
 
-      <div class="space-y-4">
-        <div class="p-4 rounded-xl border bg-slate-50">
-          <h2 class="font-bold text-slate-800">현재 추정 발성</h2>
-          <p id="voiceType" class="mt-2 text-2xl font-extrabold text-indigo-700">대기 중</p>
-          <p id="confidence" class="text-sm text-slate-500"></p>
-        </div>
+<div class="wrap">
 
-        <div class="p-4 rounded-xl border">
-          <h3 class="font-semibold">음질 피드백</h3>
-          <ul id="feedback" class="list-disc ml-5 mt-2 text-sm text-slate-700 space-y-1"></ul>
-        </div>
-      </div>
-    </section>
+<header class="card">
+<h1>보컬 연습 계기판</h1>
+<button id="start">마이크 시작</button>
+</header>
 
-    <section class="grid md:grid-cols-2 gap-6">
-      <div class="p-4 rounded-xl border space-y-3">
-        <h3 class="text-lg font-bold">핵심 지표</h3>
-        <div>
-          <div class="flex justify-between text-sm"><span>주파수(F0)</span><span id="f0">- Hz</span></div>
-          <div class="meter"><span id="f0Bar" class="bg-indigo-500" style="width:0%"></span></div>
-        </div>
-        <div>
-          <div class="flex justify-between text-sm"><span>숨소리 비중(HNR 역지표)</span><span id="breath">-</span></div>
-          <div class="meter"><span id="breathBar" class="bg-rose-500" style="width:0%"></span></div>
-        </div>
-        <div>
-          <div class="flex justify-between text-sm"><span>성대 접촉감(고조파 기울기)</span><span id="closure">-</span></div>
-          <div class="meter"><span id="closureBar" class="bg-emerald-500" style="width:0%"></span></div>
-        </div>
-        <div>
-          <div class="flex justify-between text-sm"><span>안정성(피치 변동)</span><span id="stability">-</span></div>
-          <div class="meter"><span id="stabilityBar" class="bg-amber-500" style="width:0%"></span></div>
-        </div>
-      </div>
+<section class="top card">
 
-      <div class="p-4 rounded-xl border space-y-3">
-        <h3 class="text-lg font-bold">모음 포먼트 튜닝 (F1/F2)</h3>
-        <div class="flex gap-2">
-          <label class="text-sm">목표 모음</label>
-          <select id="vowelTarget" class="border rounded px-2 py-1">
-            <option value="a">아 /a/</option><option value="e">에 /e/</option><option value="i">이 /i/</option><option value="o">오 /o/</option><option value="u">우 /u/</option>
-          </select>
-        </div>
-        <p id="targetText" class="text-sm text-slate-600"></p>
-        <p id="formantNow" class="font-semibold">현재: F1 - / F2 -</p>
-        <p id="formantGuide" class="text-sm text-indigo-700"></p>
-      </div>
-    </section>
-  </main>
+<div class="result card">
+<div class="label">현재 발성 추정</div>
+<div id="type">대기 중</div>
+<div id="reason">한 음을 2초 정도 길게 내봐.</div>
+</div>
+
+<div class="stats">
+<div class="stat">
+<div class="label">Pitch</div>
+<b id="pitch">-</b>
+</div>
+
+<div class="stat">
+<div class="label">Note</div>
+<b id="note">-</b>
+</div>
+
+<div class="stat">
+<div class="label">F1</div>
+<b id="f1">-</b>
+</div>
+
+<div class="stat">
+<div class="label">F2</div>
+<b id="f2">-</b>
+</div>
+</div>
+
+</section>
+
+<section class="card meters">
+
+<div>
+<div class="meterTop">
+<span>성대접촉</span>
+<span id="harmTxt">0%</span>
+</div>
+<div class="bar"><div class="fill" id="harmBar"></div></div>
+</div>
+
+<div>
+<div class="meterTop">
+<span>숨소리</span>
+<span id="noiseTxt">0%</span>
+</div>
+<div class="bar"><div class="fill" id="noiseBar"></div></div>
+</div>
+
+<div>
+<div class="meterTop">
+<span>밝기</span>
+<span id="brightTxt">0%</span>
+</div>
+<div class="bar"><div class="fill" id="brightBar"></div></div>
+</div>
+
+<div>
+<div class="meterTop">
+<span>안정도</span>
+<span id="stableTxt">0%</span>
+</div>
+<div class="bar"><div class="fill" id="stableBar"></div></div>
+</div>
+
+<div>
+<div class="meterTop">
+<span>볼륨</span>
+<span id="volTxt">0%</span>
+</div>
+<div class="bar"><div class="fill" id="volBar"></div></div>
+</div>
+
+</section>
+
+<section class="card feedback" id="feedback">
+<div class="msg">우→오→어→아 순서로 열면서 포먼트 이동을 느껴봐.</div>
+<div class="msg">믹스는 큰 소리보다 접촉과 밝기를 유지하는 게 중요.</div>
+</section>
+
+<section class="card trainer">
+
+<div class="controls">
+<b>포먼트 튜닝</b>
+
+<select id="vowel">
+<option value="a">아</option>
+<option value="eo">어</option>
+<option value="o">오</option>
+<option value="u">우</option>
+<option value="i">이</option>
+<option value="ae">애</option>
+</select>
+
+<select id="profile">
+<option value="male">낮은/남성</option>
+<option value="female">높은/여성</option>
+</select>
+</div>
+
+<div class="target">
+<div class="mini">
+<span>목표F1</span>
+<b id="tf1">-</b>
+</div>
+
+<div class="mini">
+<span>현재F1</span>
+<b id="cf1">-</b>
+</div>
+
+<div class="mini">
+<span>목표F2</span>
+<b id="tf2">-</b>
+</div>
+
+<div class="mini">
+<span>현재F2</span>
+<b id="cf2">-</b>
+</div>
+</div>
+
+<canvas id="formants" width="680" height="280"></canvas>
+
+<p id="tip">목표점 근처로 현재점을 움직여 봐.</p>
+
+</section>
+
+</div>
 
 <script>
-(() => {
-  const refs = {
-    startBtn: document.getElementById('startBtn'), stopBtn: document.getElementById('stopBtn'), sampleBtn: document.getElementById('sampleBtn'),
-    scope: document.getElementById('scope'), voiceType: document.getElementById('voiceType'), confidence: document.getElementById('confidence'),
-    feedback: document.getElementById('feedback'), f0: document.getElementById('f0'), breath: document.getElementById('breath'), closure: document.getElementById('closure'), stability: document.getElementById('stability'),
-    f0Bar: document.getElementById('f0Bar'), breathBar: document.getElementById('breathBar'), closureBar: document.getElementById('closureBar'), stabilityBar: document.getElementById('stabilityBar'),
-    vowelTarget: document.getElementById('vowelTarget'), targetText: document.getElementById('targetText'), formantNow: document.getElementById('formantNow'), formantGuide: document.getElementById('formantGuide'), phoneme: document.getElementById('phoneme')
-  };
-  const VOWELS = { a:{f1:800,f2:1200,tip:'입을 크게 열고 혀를 낮추세요.'}, e:{f1:500,f2:1900,tip:'입을 중간 열고 혀를 앞쪽으로.'}, i:{f1:300,f2:2300,tip:'입을 덜 열고 혀 앞쪽을 높이세요.'}, o:{f1:500,f2:900,tip:'입술을 둥글게, 혀를 뒤로.'}, u:{f1:350,f2:800,tip:'입술 더 둥글게, 혀 뒤쪽 높게.'} };
 
-  let ctx, analyser, source, stream, raf;
-  let historyF0 = [];
-  const canv = refs.scope, c = canv.getContext('2d');
+const $=id=>document.getElementById(id)
 
-  function setTargetText(){ const v = VOWELS[refs.vowelTarget.value]; refs.targetText.textContent=`목표: F1≈${v.f1}Hz, F2≈${v.f2}Hz | ${v.tip}`; }
-  setTargetText(); refs.vowelTarget.addEventListener('change', setTargetText);
+const E={
+start:$("start"),
+type:$("type"),
+reason:$("reason"),
+pitch:$("pitch"),
+note:$("note"),
+f1:$("f1"),
+f2:$("f2"),
 
-  refs.sampleBtn.onclick = async () => {
-    const p = refs.phoneme.value.trim() || '아';
-    refs.sampleBtn.disabled=true;
-    for (let i=3;i>0;i--){ refs.sampleBtn.textContent=`${p} 발음 준비 ${i}`; await new Promise(r=>setTimeout(r,900)); }
-    refs.sampleBtn.textContent=`지금 "${p}" 2초 발음!`; await new Promise(r=>setTimeout(r,2100));
-    refs.sampleBtn.textContent='발음 카운트다운'; refs.sampleBtn.disabled=false;
-  }
+harmTxt:$("harmTxt"),
+noiseTxt:$("noiseTxt"),
+brightTxt:$("brightTxt"),
+stableTxt:$("stableTxt"),
+volTxt:$("volTxt"),
 
-  refs.startBtn.onclick = async () => {
-    stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    ctx = new (window.AudioContext||window.webkitAudioContext)();
-    source = ctx.createMediaStreamSource(stream);
-    analyser = ctx.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant=0.85;
-    source.connect(analyser);
-    refs.startBtn.disabled=true; refs.stopBtn.disabled=false;
-    tick();
-  }
+harmBar:$("harmBar"),
+noiseBar:$("noiseBar"),
+brightBar:$("brightBar"),
+stableBar:$("stableBar"),
+volBar:$("volBar"),
 
-  refs.stopBtn.onclick = () => {
-    cancelAnimationFrame(raf); if(stream) stream.getTracks().forEach(t=>t.stop()); if(ctx) ctx.close();
-    refs.startBtn.disabled=false; refs.stopBtn.disabled=true; refs.voiceType.textContent='중지됨';
-  }
+feedback:$("feedback"),
 
-  function autoCorrelate(buf, sampleRate){
-    let SIZE=buf.length, rms=0; for(let i=0;i<SIZE;i++){let v=buf[i]; rms += v*v;} rms=Math.sqrt(rms/SIZE); if(rms<0.01) return -1;
-    let r1=0,r2=SIZE-1,thres=0.2; for(let i=0;i<SIZE/2;i++) if(Math.abs(buf[i])<thres){r1=i;break;} for(let i=1;i<SIZE/2;i++) if(Math.abs(buf[SIZE-i])<thres){r2=SIZE-i;break;}
-    buf=buf.slice(r1,r2); SIZE=buf.length; const c=new Array(SIZE).fill(0); for(let i=0;i<SIZE;i++) for(let j=0;j<SIZE-i;j++) c[i]+=buf[j]*buf[j+i];
-    let d=0; while(c[d]>c[d+1]) d++; let max=-1,idx=-1; for(let i=d;i<SIZE;i++) if(c[i]>max){max=c[i];idx=i;} if(idx<=0) return -1;
-    const x1=c[idx-1],x2=c[idx],x3=c[idx+1],a=(x1+x3-2*x2)/2,b=(x3-x1)/2; return sampleRate/(idx - b/(2*a));
-  }
+vowel:$("vowel"),
+profile:$("profile"),
 
-  function estimateFormants(freqData, sampleRate){
-    const hzPerBin=sampleRate/2/freqData.length; const peaks=[];
-    for(let i=2;i<freqData.length-2;i++) if(freqData[i]>freqData[i-1]&&freqData[i]>freqData[i+1]&&freqData[i]>-75) peaks.push({hz:i*hzPerBin,db:freqData[i]});
-    const f1=peaks.find(p=>p.hz>250&&p.hz<1000); const f2=peaks.find(p=>p.hz>900&&p.hz<3000);
-    return {f1:f1?.hz||0,f2:f2?.hz||0};
-  }
+tf1:$("tf1"),
+tf2:$("tf2"),
+cf1:$("cf1"),
+cf2:$("cf2"),
 
-  function tick(){
-    const timeData = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(timeData);
-    const freqData = new Float32Array(analyser.frequencyBinCount); analyser.getFloatFrequencyData(freqData);
-    const f0 = autoCorrelate([...timeData], ctx.sampleRate);
-    if(f0>0 && f0<1200){ historyF0.push(f0); if(historyF0.length>40) historyF0.shift(); }
-    const mean=historyF0.reduce((a,b)=>a+b,0)/(historyF0.length||1); const variance=historyF0.reduce((a,b)=>a+(b-mean)**2,0)/(historyF0.length||1);
-    const jitter=Math.min(1, Math.sqrt(variance)/Math.max(mean,1));
+canvas:$("formants"),
+tip:$("tip")
+}
 
-    const lowBand=bandEnergy(freqData,ctx.sampleRate,2000,8000), harmonic=bandEnergy(freqData,ctx.sampleRate,80,1800);
-    const breathy = clamp(lowBand/(harmonic+lowBand+1e-6),0,1);
-    const slope = spectralSlope(freqData,ctx.sampleRate);
-    const closure = clamp(( -slope - 10 ) / 20, 0, 1);
+const targets={
+male:{
+a:[730,1090],
+eo:[600,1200],
+o:[570,840],
+u:[300,870],
+i:[270,2290],
+ae:[660,1720]
+},
+female:{
+a:[850,1220],
+eo:[720,1400],
+o:[590,920],
+u:[370,950],
+i:[310,2790],
+ae:[780,1950]
+}
+}
 
-    const type = classify(f0,breathy,closure,jitter);
-    render(type,f0,breathy,closure,jitter,estimateFormants(freqData,ctx.sampleRate));
-    drawScope(timeData);
-    raf=requestAnimationFrame(tick);
-  }
+let ac,an,src,freq,time,sr,hist=[],last={f1:0,f2:0}
 
-  function classify(f0,breathy,closure,jitter){
-    if(f0<0) return {label:'무성/침묵', conf:0.1, notes:['소리를 더 또렷하게 내보세요.']};
-    let label='진성', conf=0.55;
-    if(breathy>0.48 && closure<0.45) {label='가성'; conf=0.78;}
-    else if(f0>340 && closure<0.55) {label='두성'; conf=0.65;}
-    else if(f0>220 && breathy<0.5 && closure>0.45){label='믹스보이스'; conf=0.7;}
-    else if(closure>=0.58 && breathy<0.4){label='진성'; conf=0.76;}
-    const notes=[];
-    if(breathy>0.5) notes.push('숨소리 비중이 높아요. 성대 접촉을 조금 더 단단히 해보세요(너무 세게 X).');
-    if(closure<0.35) notes.push('접촉감이 약합니다. NG, M 허밍으로 성대 접지 연습을 해보세요.');
-    if(jitter>0.14) notes.push('피치 흔들림이 큽니다. 리브트릴/사이렌으로 안정화하세요.');
-    if(notes.length===0) notes.push('균형이 좋아요. 같은 감각으로 5음계 패턴을 확장해보세요.');
-    return {label,conf,notes};
-  }
+E.start.onclick=async()=>{
 
-  function render(type,f0,breathy,closure,jitter,form){
-    refs.voiceType.textContent=type.label; refs.confidence.textContent=`신뢰도 ${Math.round(type.conf*100)}% (휴리스틱)`;
-    refs.feedback.innerHTML=''; type.notes.forEach(n=>{const li=document.createElement('li');li.textContent=n;refs.feedback.appendChild(li);});
-    refs.f0.textContent = f0>0?`${Math.round(f0)} Hz`:'-'; refs.f0Bar.style.width=`${clamp((f0||0)/500,0,1)*100}%`;
-    refs.breath.textContent=`${Math.round(breathy*100)}%`; refs.breathBar.style.width=`${breathy*100}%`;
-    refs.closure.textContent=`${Math.round(closure*100)}%`; refs.closureBar.style.width=`${closure*100}%`;
-    refs.stability.textContent=`${Math.round((1-jitter)*100)}%`; refs.stabilityBar.style.width=`${clamp(1-jitter,0,1)*100}%`;
+try{
 
-    refs.formantNow.textContent=`현재: F1 ${Math.round(form.f1)||'-'} / F2 ${Math.round(form.f2)||'-'} Hz`;
-    const t = VOWELS[refs.vowelTarget.value];
-    const d1=form.f1?Math.round(form.f1-t.f1):null, d2=form.f2?Math.round(form.f2-t.f2):null;
-    refs.formantGuide.textContent = (d1===null)?'발성을 유지하면 포먼트 가이드가 나타납니다.':
-      `F1 ${d1>0?'+':''}${d1}Hz, F2 ${d2>0?'+':''}${d2}Hz 차이 | ${guideText(d1,d2)}`;
-  }
+const stream=await navigator.mediaDevices.getUserMedia({
+audio:{
+echoCancellation:false,
+noiseSuppression:false,
+autoGainControl:false
+}
+})
 
-  function guideText(d1,d2){
-    const a=[]; if(d1>80)a.push('입을 조금 덜 열기'); if(d1<-80)a.push('입을 조금 더 열기'); if(d2>120)a.push('혀를 뒤로/입술 라운딩'); if(d2<-120)a.push('혀를 앞쪽으로');
-    return a.length?a.join(', '):'목표에 매우 근접!';
-  }
-  function bandEnergy(freqData,sampleRate,low,high){ const hzPerBin=sampleRate/2/freqData.length; let s=0,c=0; for(let i=0;i<freqData.length;i++){const hz=i*hzPerBin; if(hz>=low&&hz<=high){s+=Math.pow(10,freqData[i]/20); c++;}} return c?s/c:0; }
-  function spectralSlope(freqData,sampleRate){ const hzPerBin=sampleRate/2/freqData.length; let sx=0,sy=0,sxy=0,sxx=0,n=0; for(let i=10;i<freqData.length;i++){const hz=i*hzPerBin; if(hz<200||hz>6000)continue; const x=Math.log10(hz),y=freqData[i]; sx+=x;sy+=y;sxy+=x*y;sxx+=x*x;n++;} return (n*sxy-sx*sy)/(n*sxx-sx*sx+1e-6); }
-  function clamp(v,min,max){ return Math.min(max,Math.max(min,v)); }
-  function drawScope(buf){ c.clearRect(0,0,canv.width,canv.height); c.strokeStyle='#34d399'; c.lineWidth=2; c.beginPath(); const step=canv.width/buf.length; for(let i=0;i<buf.length;i++){const y=(0.5+buf[i]/2)*canv.height; if(i===0)c.moveTo(0,y); else c.lineTo(i*step,y);} c.stroke(); }
-})();
+ac=new(window.AudioContext||window.webkitAudioContext)()
+
+sr=ac.sampleRate
+
+an=ac.createAnalyser()
+an.fftSize=4096
+an.smoothingTimeConstant=.7
+
+freq=new Uint8Array(an.frequencyBinCount)
+time=new Float32Array(an.fftSize)
+
+src=ac.createMediaStreamSource(stream)
+src.connect(an)
+
+E.start.textContent="분석 중"
+
+loop()
+
+}catch(e){
+
+E.type.textContent="마이크 실패"
+E.reason.textContent=e.message
+
+}
+
+}
+
+function loop(){
+
+an.getByteFrequencyData(freq)
+an.getFloatTimeDomainData(time)
+
+const rms=RMS(time)
+const pitch=AC(time,sr)
+
+const spec=SPEC(freq,sr,an.fftSize)
+const fm=FORM(spec.peaks)
+
+const harm=HARM(spec.peaks,pitch)
+const noise=clamp(1-harm,0,1)
+const bright=clamp((spec.centroid-900)/2600,0,1)
+
+if(pitch>60&&pitch<1200&&rms>.01){
+
+hist.push(pitch)
+
+if(hist.length>35)hist.shift()
+
+}
+
+const stable=STAB(hist)
+
+last=fm
+
+const c=CLASS({
+rms,pitch,harm,noise,bright,stable
+})
+
+render({
+rms,pitch,fm,harm,noise,bright,stable,c
+})
+
+requestAnimationFrame(loop)
+
+}
+
+function RMS(b){
+
+let s=0
+
+for(const x of b)s+=x*x
+
+return Math.sqrt(s/b.length)
+
+}
+
+function AC(b,sr){
+
+if(RMS(b)<.01)return-1
+
+let best=-1
+let bc=0
+
+const min=Math.floor(sr/1000)
+const max=Math.floor(sr/60)
+
+for(let lag=min;lag<max;lag++){
+
+let c=0
+
+for(let i=0;i<b.length-lag;i++){
+
+c+=b[i]*b[i+lag]
+
+}
+
+c/=b.length-lag
+
+if(c>bc){
+
+bc=c
+best=lag
+
+}
+
+}
+
+return bc<.002?-1:sr/best
+
+}
+
+function SPEC(d,sr,fft){
+
+const bin=sr/fft
+
+const peaks=[]
+
+let w=0
+let t=0
+
+for(let i=3;i<d.length-3;i++){
+
+let hz=i*bin
+let a=d[i]/255
+
+w+=hz*a
+t+=a
+
+if(
+hz>150&&
+hz<4000&&
+a>.08&&
+d[i]>d[i-1]&&
+d[i]>d[i+1]
+){
+
+peaks.push({
+hz,
+amp:a
+})
+
+}
+
+}
+
+peaks.sort((a,b)=>b.amp-a.amp)
+
+return{
+peaks:peaks.slice(0,35).sort((a,b)=>a.hz-b.hz),
+centroid:t?w/t:0
+}
+
+}
+
+function FORM(peaks){
+
+const c=peaks.filter(p=>p.hz>200&&p.hz<3500)
+
+const f1=c
+.filter(p=>p.hz>=250&&p.hz<=1000)
+.sort((a,b)=>b.amp-a.amp)[0]
+
+const f2=c
+.filter(p=>p.hz>=800&&p.hz<=3000)
+.sort((a,b)=>b.amp-a.amp)[0]
+
+return{
+f1:f1?Math.round(f1.hz):0,
+f2:f2?Math.round(f2.hz):0
+}
+
+}
+
+function HARM(peaks,p){
+
+if(!p||p<60)return 0
+
+let h=0
+let t=0
+
+for(const x of peaks){
+
+t+=x.amp
+
+let n=Math.round(x.hz/p)
+
+let near=n*p
+
+if(
+n>0&&
+Math.abs(x.hz-near)<Math.max(25,p*.08)
+){
+
+h+=x.amp
+
+}
+
+}
+
+return t?clamp(h/t,0,1):0
+
+}
+
+function STAB(h){
+
+if(h.length<8)return 0
+
+let m=h.reduce((a,b)=>a+b,0)/h.length
+
+let sd=Math.sqrt(
+h.reduce((a,b)=>a+(b-m)**2,0)/h.length
+)
+
+return clamp(1-sd/40,0,1)
+
+}
+
+function CLASS(a){
+
+if(a.rms<.012||a.pitch<60){
+
+return[
+"대기 중",
+"분석할 만큼 소리가 아직 작아.",
+[
+"한 음을 2초 길게 내봐.",
+"마이크는 15~30cm 정도 떨어뜨려."
+]
+]
+
+}
+
+let type="믹스 근처"
+
+let reason="접촉, 밝기, 숨샘이 중간권이라 믹스 연습 구간으로 보여."
+
+let msg=[
+"볼륨보다 접촉과 밝기를 같이 유지해."
+]
+
+if(a.noise>.55&&a.harm<.48){
+
+type="가성/숨샘 큼"
+
+reason="배음보다 노이즈가 많아서 바람 섞인 소리로 보여."
+
+msg=[
+"숨이 많이 새. ‘으/구’ 느낌으로 접촉을 조금 더.",
+"소리를 키우지 말고 바람 새는 양만 줄여봐."
+]
+
+}
+
+else if(a.bright<.28&&a.harm>.62&&a.pitch<360){
+
+type="진성 비중 큼"
+
+reason="배음은 강한데 어둡고 무거워."
+
+msg=[
+"고음 갈수록 모음을 조금 좁혀.",
+"힘으로 밀지 말고 볼륨을 20% 줄여."
+]
+
+}
+
+else if(a.bright>.55&&a.harm>.58&&a.noise<.45){
+
+type="두성/밝은 믹스"
+
+reason="밝은 배음과 접촉이 같이 살아있어."
+
+msg=[
+"좋아. 얇아지면 ‘네/냐’ 느낌으로 진성감 추가.",
+"날카로우면 ‘어/오’로 살짝 둥글려."
+]
+
+}
+
+if(a.stable<.45){
+
+msg.push(
+"음정 흔들림 있음. 작은 소리로 2초 유지."
+)
+
+}
+
+if(a.rms>.17){
+
+msg.push(
+"입력이 너무 큼. 힘이 들어갔을 수 있어."
+)
+
+}
+
+return[
+type,
+reason,
+msg
+]
+
+}
+
+function render(o){
+
+E.type.textContent=o.c[0]
+E.reason.textContent=o.c[1]
+
+E.pitch.textContent=
+o.pitch>0?
+Math.round(o.pitch)+"Hz":"-"
+
+E.note.textContent=
+o.pitch>0?
+NOTE(o.pitch):"-"
+
+E.f1.textContent=
+o.fm.f1?
+o.fm.f1+"Hz":"-"
+
+E.f2.textContent=
+o.fm.f2?
+o.fm.f2+"Hz":"-"
+
+bar("harm",o.harm)
+bar("noise",o.noise)
+bar("bright",o.bright)
+bar("stable",o.stable)
+bar("vol",clamp(o.rms*5,0,1))
+
+E.feedback.innerHTML=
+o.c[2]
+.slice(0,2)
+.map(x=>`<div class="msg">${x}</div>`)
+.join("")
+
+drawFormants(o.fm)
+
+}
+
+function bar(k,v){
+
+E[k+"Txt"].textContent=
+Math.round(v*100)+"%"
+
+E[k+"Bar"].style.width=
+Math.round(v*100)+"%"
+
+}
+
+function NOTE(hz){
+
+const n=[
+"C","C#","D","D#","E","F",
+"F#","G","G#","A","A#","B"
+]
+
+const m=Math.round(
+69+12*Math.log2(hz/440)
+)
+
+return(
+n[(m+1200)%12]+
+Math.floor(m/12-1)
+)
+
+}
+
+function drawFormants(fm){
+
+const[
+tf1,
+tf2
+]=targets[E.profile.value][E.vowel.value]
+
+E.tf1.textContent=tf1+"Hz"
+E.tf2.textContent=tf2+"Hz"
+
+E.cf1.textContent=
+fm.f1?
+fm.f1+"Hz":"-"
+
+E.cf2.textContent=
+fm.f2?
+fm.f2+"Hz":"-"
+
+const c=E.canvas
+const ctx=c.getContext("2d")
+
+const w=c.width
+const h=c.height
+
+ctx.clearRect(0,0,w,h)
+
+const x=f2=>w-((f2-500)/2600)*w
+const y=f1=>((f1-200)/850)*h
+
+ctx.strokeStyle="#273142"
+
+for(let i=1;i<5;i++){
+
+ctx.beginPath()
+ctx.moveTo(i*w/5,0)
+ctx.lineTo(i*w/5,h)
+ctx.stroke()
+
+ctx.beginPath()
+ctx.moveTo(0,i*h/5)
+ctx.lineTo(w,i*h/5)
+ctx.stroke()
+
+}
+
+ctx.fillStyle="#a8ffbf"
+
+ctx.beginPath()
+ctx.arc(x(tf2),y(tf1),16,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillText(
+"목표",
+x(tf2)+20,
+y(tf1)+5
+)
+
+if(fm.f1&&fm.f2){
+
+ctx.fillStyle="#9ee7ff"
+
+ctx.beginPath()
+ctx.arc(x(fm.f2),y(fm.f1),12,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillText(
+"현재",
+x(fm.f2)+16,
+y(fm.f1)+5
+)
+
+const d=Math.hypot(
+(fm.f1-tf1)/120,
+(fm.f2-tf2)/250
+)
+
+E.tip.textContent=
+d<1?
+"좋아. 목표 모음에 꽤 가까워.":
+fm.f1>tf1+120?
+"입을 조금 덜 벌려서 F1 낮춰.":
+fm.f1<tf1-120?
+"턱/입 열림 조금 더 줘.":
+fm.f2>tf2+250?
+"너무 밝고 앞쪽. 살짝 둥글려.":
+fm.f2<tf2-250?
+"조금 더 앞쪽/미소감 줘.":
+"거의 근처. 흔들지 말고 유지."
+
+}else{
+
+E.tip.textContent=
+"모음을 길게 내면 현재점이 잡혀."
+
+}
+
+}
+
+function clamp(x,a,b){
+
+return Math.min(
+b,
+Math.max(a,x)
+)
+
+}
+
+E.vowel.onchange=()=>drawFormants(last)
+E.profile.onchange=()=>drawFormants(last)
+
+drawFormants(last)
+
 </script>
+
 </body>
 </html>
