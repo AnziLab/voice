@@ -1,269 +1,200 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나의 피로도 동물은?</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-        }
-        #question-title, .option-btn {
-             font-family: 'Roboto', sans-serif;
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .progress-bar-fill {
-            transition: width 0.5s ease-in-out;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Lab - 발성/포먼트 트레이너</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: "Pretendard", "Noto Sans KR", sans-serif; }
+    .meter { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+    .meter > span { display:block; height:100%; transition: width .2s ease; }
+    canvas { background: #0b1220; border-radius: 12px; }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div id="app" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-10 transition-all duration-500">
-        
-        <!-- 시작 화면 -->
-        <div id="start-screen" class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">나의 피로도 동물 찾기</h1>
-            <p class="text-gray-600 mb-8">나의 생활 습관을 돌아보고, 어떤 동물과 닮았는지 확인해보세요!</p>
-            <img src="beaver.png" alt="테스트 시작 이미지" class="w-full max-w-md mx-auto rounded-lg mb-8">
-            <button id="start-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105">
-                Test Start!
-            </button>
+<body class="bg-slate-100 min-h-screen py-8 px-4">
+  <main class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-10 space-y-8">
+    <header>
+      <h1 class="text-3xl font-bold text-slate-900">🎙️ Voice Lab (정적 웹앱)</h1>
+      <p class="mt-2 text-slate-600">마이크 소리를 기반으로 <b>진성/믹스/두성/가성</b>을 추정하고, 숨소리·접촉감·안정성 피드백과 모음 포먼트(F1/F2) 튜닝 연습을 제공합니다.</p>
+      <p class="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">의학적/임상 진단이 아닌 연습용 추정 도구입니다. 실제 보컬 레슨과 함께 사용하세요.</p>
+    </header>
+
+    <section class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4">
+        <div class="flex flex-wrap gap-3">
+          <button id="startBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">마이크 시작</button>
+          <button id="stopBtn" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800" disabled>중지</button>
+          <button id="sampleBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">발음 카운트다운</button>
+          <input id="phoneme" class="px-3 py-2 border rounded-lg" value="아" />
+        </div>
+        <canvas id="scope" width="900" height="240" class="w-full h-56"></canvas>
+      </div>
+
+      <div class="space-y-4">
+        <div class="p-4 rounded-xl border bg-slate-50">
+          <h2 class="font-bold text-slate-800">현재 추정 발성</h2>
+          <p id="voiceType" class="mt-2 text-2xl font-extrabold text-indigo-700">대기 중</p>
+          <p id="confidence" class="text-sm text-slate-500"></p>
         </div>
 
-        <!-- 설문 진행 화면 -->
-        <div id="quiz-screen" class="hidden">
-            <div class="mb-6">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold text-gray-500">Progress</span>
-                    <span id="progress-text" class="text-sm font-bold text-emerald-600"></span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full progress-bar-fill" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div id="question-container" class="fade-in">
-                <h2 id="question-title" class="text-2xl font-bold text-gray-800 mb-6 text-center"></h2>
-                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- 선택지 버튼이 여기에 동적으로 추가됩니다 -->
-                </div>
-            </div>
+        <div class="p-4 rounded-xl border">
+          <h3 class="font-semibold">음질 피드백</h3>
+          <ul id="feedback" class="list-disc ml-5 mt-2 text-sm text-slate-700 space-y-1"></ul>
         </div>
+      </div>
+    </section>
 
-        <!-- 결과 화면 -->
-        <div id="result-screen" class="hidden text-center">
-            <h2 class="text-xl font-bold text-gray-500 mb-2">당신의 피로도 동물은...</h2>
-            <h1 id="result-animal" class="text-4xl md:text-5xl font-extrabold mb-4"></h1>
-            <img id="result-image" src="" alt="결과 동물 이미지" class="w-full max-w-sm mx-auto rounded-xl shadow-lg mb-6">
-            <p id="result-description" class="text-lg text-gray-700 mb-6 whitespace-pre-line"></p>
-            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg">
-                <h3 class="font-bold text-emerald-800 mb-2">💡 Tip for You!</h3>
-                <p id="result-tip" class="text-emerald-700"></p>
-            </div>
-            <button id="restart-btn" class="mt-8 w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105">
-                테스트 다시하기
-            </button>
+    <section class="grid md:grid-cols-2 gap-6">
+      <div class="p-4 rounded-xl border space-y-3">
+        <h3 class="text-lg font-bold">핵심 지표</h3>
+        <div>
+          <div class="flex justify-between text-sm"><span>주파수(F0)</span><span id="f0">- Hz</span></div>
+          <div class="meter"><span id="f0Bar" class="bg-indigo-500" style="width:0%"></span></div>
         </div>
-    </div>
+        <div>
+          <div class="flex justify-between text-sm"><span>숨소리 비중(HNR 역지표)</span><span id="breath">-</span></div>
+          <div class="meter"><span id="breathBar" class="bg-rose-500" style="width:0%"></span></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-sm"><span>성대 접촉감(고조파 기울기)</span><span id="closure">-</span></div>
+          <div class="meter"><span id="closureBar" class="bg-emerald-500" style="width:0%"></span></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-sm"><span>안정성(피치 변동)</span><span id="stability">-</span></div>
+          <div class="meter"><span id="stabilityBar" class="bg-amber-500" style="width:0%"></span></div>
+        </div>
+      </div>
 
-    <script>
-        const questions = [
-            {
-                question: "How many times a week do you go to after-school academies?",
-                options: [
-                    { text: "1-3 times a week", score: 0 },
-                    { text: "4 times a week or more", score: 2 },
-                    { text: "I don't go to any", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you go to the cinema?",
-                options: [
-                    { text: "Once a month or less", score: 1 },
-                    { text: "Twice a month or more", score: 0 }
-                ]
-            },
-            {
-                question: "How many times a week do you hang out with friends (outside of school)?",
-                options: [
-                    { text: "Never", score: 2 },
-                    { text: "1-2 times a week", score: 1 },
-                    { text: "3 times a week or more", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you play games (PC/mobile/console) in a week?",
-                options: [
-                    { text: "4 times a week or more", score: 1 },
-                    { text: "1-3 times a week", score: 0 },
-                    { text: "Almost never", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you eat fast food or junk food?",
-                options: [
-                    { text: "3 times a week or more", score: 2 },
-                    { text: "1-2 times a week", score: 0 },
-                    { text: "Once a month or less", score: 0 }
-                ]
-            },
-            {
-                question: "How many times a week do you exercise (for at least 30 minutes)?",
-                options: [
-                    { text: "Not at all", score: 2 },
-                    { text: "1-2 times a week", score: 1 },
-                    { text: "3 times a week or more", score: 0 }
-                ]
-            },
-            {
-                question: "How often do you help with housework?",
-                options: [
-                    { text: "Almost never", score: 1 },
-                    { text: "Once a week or more", score: 0 }
-                ]
-            },
-            {
-                question: "How many times a year do you take a family trip (overnight)?",
-                options: [
-                    { text: "0-1 time a year", score: 1 },
-                    { text: "Twice a year or more", score: 0 }
-                ]
-            }
-        ];
+      <div class="p-4 rounded-xl border space-y-3">
+        <h3 class="text-lg font-bold">모음 포먼트 튜닝 (F1/F2)</h3>
+        <div class="flex gap-2">
+          <label class="text-sm">목표 모음</label>
+          <select id="vowelTarget" class="border rounded px-2 py-1">
+            <option value="a">아 /a/</option><option value="e">에 /e/</option><option value="i">이 /i/</option><option value="o">오 /o/</option><option value="u">우 /u/</option>
+          </select>
+        </div>
+        <p id="targetText" class="text-sm text-slate-600"></p>
+        <p id="formantNow" class="font-semibold">현재: F1 - / F2 -</p>
+        <p id="formantGuide" class="text-sm text-indigo-700"></p>
+      </div>
+    </section>
+  </main>
 
-        const results = {
-            panda: {
-                animal: "다크서클 팬더 🐼",
-                image: "panda.png",
-                description: "너무 지쳐서 대나무 씹을 힘도 없을 지경!\n몸과 마음의 에너지가 모두 방전되었어요.",
-                tip: "You urgently need true rest. I suggest you recharge your mind and body with healthy habits!"
-            },
-            sloth: {
-                animal: "느긋한 나무늘보 🦥",
-                image: "sloth.png",
-                description: "느릿느릿~ 움직이는 게으름뱅이 나무늘보처럼\n에너지가 부족하지만 그럭저럭 버티고 있어요.",
-                tip: "I suggest you get enough sleep, or find joy through your favorite hobbies!"
-            },
-            beaver: {
-                animal: "바쁜 비버 🦫",
-                image: "beaver.png",
-                description: "바쁘게 댐을 짓는 비버처럼 할 일은 많지만,\n아직 눈은 반짝! 피로를 잘 관리하고 있네요.",
-                tip: "I recommend you keep up the good work balancing your studies and rest!"
-            },
-            otter: {
-                animal: "행복한 수달 🦦",
-                image: "otter.png",
-                description: "물 위에서 유유자적~ 조개를 쪼개 먹는 수달처럼\n몸과 마음이 모두 건강하고 행복한 상태예요!",
-                tip: "I suggest you share your healthy lifestyle secrets with your friends!"
-            }
-        };
+<script>
+(() => {
+  const refs = {
+    startBtn: document.getElementById('startBtn'), stopBtn: document.getElementById('stopBtn'), sampleBtn: document.getElementById('sampleBtn'),
+    scope: document.getElementById('scope'), voiceType: document.getElementById('voiceType'), confidence: document.getElementById('confidence'),
+    feedback: document.getElementById('feedback'), f0: document.getElementById('f0'), breath: document.getElementById('breath'), closure: document.getElementById('closure'), stability: document.getElementById('stability'),
+    f0Bar: document.getElementById('f0Bar'), breathBar: document.getElementById('breathBar'), closureBar: document.getElementById('closureBar'), stabilityBar: document.getElementById('stabilityBar'),
+    vowelTarget: document.getElementById('vowelTarget'), targetText: document.getElementById('targetText'), formantNow: document.getElementById('formantNow'), formantGuide: document.getElementById('formantGuide'), phoneme: document.getElementById('phoneme')
+  };
+  const VOWELS = { a:{f1:800,f2:1200,tip:'입을 크게 열고 혀를 낮추세요.'}, e:{f1:500,f2:1900,tip:'입을 중간 열고 혀를 앞쪽으로.'}, i:{f1:300,f2:2300,tip:'입을 덜 열고 혀 앞쪽을 높이세요.'}, o:{f1:500,f2:900,tip:'입술을 둥글게, 혀를 뒤로.'}, u:{f1:350,f2:800,tip:'입술 더 둥글게, 혀 뒤쪽 높게.'} };
 
-        let currentQuestionIndex = 0;
-        let totalScore = 0;
+  let ctx, analyser, source, stream, raf;
+  let historyF0 = [];
+  const canv = refs.scope, c = canv.getContext('2d');
 
-        const startScreen = document.getElementById('start-screen');
-        const quizScreen = document.getElementById('quiz-screen');
-        const resultScreen = document.getElementById('result-screen');
-        
-        const startBtn = document.getElementById('start-btn');
-        const restartBtn = document.getElementById('restart-btn');
+  function setTargetText(){ const v = VOWELS[refs.vowelTarget.value]; refs.targetText.textContent=`목표: F1≈${v.f1}Hz, F2≈${v.f2}Hz | ${v.tip}`; }
+  setTargetText(); refs.vowelTarget.addEventListener('change', setTargetText);
 
-        const questionTitle = document.getElementById('question-title');
-        const optionsContainer = document.getElementById('options-container');
-        const progressBar = document.getElementById('progress-bar');
-        const progressText = document.getElementById('progress-text');
+  refs.sampleBtn.onclick = async () => {
+    const p = refs.phoneme.value.trim() || '아';
+    refs.sampleBtn.disabled=true;
+    for (let i=3;i>0;i--){ refs.sampleBtn.textContent=`${p} 발음 준비 ${i}`; await new Promise(r=>setTimeout(r,900)); }
+    refs.sampleBtn.textContent=`지금 "${p}" 2초 발음!`; await new Promise(r=>setTimeout(r,2100));
+    refs.sampleBtn.textContent='발음 카운트다운'; refs.sampleBtn.disabled=false;
+  }
 
-        startBtn.addEventListener('click', startQuiz);
-        restartBtn.addEventListener('click', restartQuiz);
+  refs.startBtn.onclick = async () => {
+    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    source = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant=0.85;
+    source.connect(analyser);
+    refs.startBtn.disabled=true; refs.stopBtn.disabled=false;
+    tick();
+  }
 
-        function startQuiz() {
-            startScreen.classList.add('hidden');
-            quizScreen.classList.remove('hidden');
-            currentQuestionIndex = 0;
-            totalScore = 0;
-            showQuestion();
-        }
-        
-        function restartQuiz() {
-            resultScreen.classList.add('hidden');
-            startScreen.classList.remove('hidden');
-        }
+  refs.stopBtn.onclick = () => {
+    cancelAnimationFrame(raf); if(stream) stream.getTracks().forEach(t=>t.stop()); if(ctx) ctx.close();
+    refs.startBtn.disabled=false; refs.stopBtn.disabled=true; refs.voiceType.textContent='중지됨';
+  }
 
-        function showQuestion() {
-            const questionData = questions[currentQuestionIndex];
-            
-            questionTitle.textContent = '';
-            optionsContainer.innerHTML = '';
-            
-            const questionContainer = document.getElementById('question-container');
-            questionContainer.classList.remove('fade-in');
-            void questionContainer.offsetWidth;
-            questionContainer.classList.add('fade-in');
+  function autoCorrelate(buf, sampleRate){
+    let SIZE=buf.length, rms=0; for(let i=0;i<SIZE;i++){let v=buf[i]; rms += v*v;} rms=Math.sqrt(rms/SIZE); if(rms<0.01) return -1;
+    let r1=0,r2=SIZE-1,thres=0.2; for(let i=0;i<SIZE/2;i++) if(Math.abs(buf[i])<thres){r1=i;break;} for(let i=1;i<SIZE/2;i++) if(Math.abs(buf[SIZE-i])<thres){r2=SIZE-i;break;}
+    buf=buf.slice(r1,r2); SIZE=buf.length; const c=new Array(SIZE).fill(0); for(let i=0;i<SIZE;i++) for(let j=0;j<SIZE-i;j++) c[i]+=buf[j]*buf[j+i];
+    let d=0; while(c[d]>c[d+1]) d++; let max=-1,idx=-1; for(let i=d;i<SIZE;i++) if(c[i]>max){max=c[i];idx=i;} if(idx<=0) return -1;
+    const x1=c[idx-1],x2=c[idx],x3=c[idx+1],a=(x1+x3-2*x2)/2,b=(x3-x1)/2; return sampleRate/(idx - b/(2*a));
+  }
 
-            questionTitle.textContent = `Q${currentQuestionIndex + 1}. ${questionData.question}`;
-            
-            questionData.options.forEach(option => {
-                const button = document.createElement('button');
-                button.textContent = option.text;
-                button.classList.add('w-full', 'bg-gray-50', 'border', 'border-gray-300', 'hover:bg-emerald-100', 'hover:border-emerald-400', 'text-gray-700', 'font-semibold', 'py-4', 'px-4', 'rounded-lg', 'transition-all', 'duration-200', 'text-left', 'md:text-center', 'option-btn');
-                button.onclick = () => selectOption(option.score);
-                optionsContainer.appendChild(button);
-            });
+  function estimateFormants(freqData, sampleRate){
+    const hzPerBin=sampleRate/2/freqData.length; const peaks=[];
+    for(let i=2;i<freqData.length-2;i++) if(freqData[i]>freqData[i-1]&&freqData[i]>freqData[i+1]&&freqData[i]>-75) peaks.push({hz:i*hzPerBin,db:freqData[i]});
+    const f1=peaks.find(p=>p.hz>250&&p.hz<1000); const f2=peaks.find(p=>p.hz>900&&p.hz<3000);
+    return {f1:f1?.hz||0,f2:f2?.hz||0};
+  }
 
-            updateProgress();
-        }
+  function tick(){
+    const timeData = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(timeData);
+    const freqData = new Float32Array(analyser.frequencyBinCount); analyser.getFloatFrequencyData(freqData);
+    const f0 = autoCorrelate([...timeData], ctx.sampleRate);
+    if(f0>0 && f0<1200){ historyF0.push(f0); if(historyF0.length>40) historyF0.shift(); }
+    const mean=historyF0.reduce((a,b)=>a+b,0)/(historyF0.length||1); const variance=historyF0.reduce((a,b)=>a+(b-mean)**2,0)/(historyF0.length||1);
+    const jitter=Math.min(1, Math.sqrt(variance)/Math.max(mean,1));
 
-        function selectOption(score) {
-            totalScore += score;
-            currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                showQuestion();
-            } else {
-                showResult();
-            }
-        }
+    const lowBand=bandEnergy(freqData,ctx.sampleRate,2000,8000), harmonic=bandEnergy(freqData,ctx.sampleRate,80,1800);
+    const breathy = clamp(lowBand/(harmonic+lowBand+1e-6),0,1);
+    const slope = spectralSlope(freqData,ctx.sampleRate);
+    const closure = clamp(( -slope - 10 ) / 20, 0, 1);
 
-        function updateProgress() {
-            const progressPercentage = ((currentQuestionIndex) / questions.length) * 100;
-            progressBar.style.width = `${progressPercentage}%`;
-            progressText.textContent = `${currentQuestionIndex} / ${questions.length}`;
-        }
-        
-        function showResult() {
-            progressBar.style.width = '100%';
-            progressText.textContent = `${questions.length} / ${questions.length}`;
+    const type = classify(f0,breathy,closure,jitter);
+    render(type,f0,breathy,closure,jitter,estimateFormants(freqData,ctx.sampleRate));
+    drawScope(timeData);
+    raf=requestAnimationFrame(tick);
+  }
 
-            let resultData;
-            if (totalScore >= 8) {
-                resultData = results.panda;
-            } else if (totalScore >= 5) {
-                resultData = results.sloth;
-            } else if (totalScore >= 2) {
-                resultData = results.beaver;
-            } else {
-                resultData = results.otter;
-            }
+  function classify(f0,breathy,closure,jitter){
+    if(f0<0) return {label:'무성/침묵', conf:0.1, notes:['소리를 더 또렷하게 내보세요.']};
+    let label='진성', conf=0.55;
+    if(breathy>0.48 && closure<0.45) {label='가성'; conf=0.78;}
+    else if(f0>340 && closure<0.55) {label='두성'; conf=0.65;}
+    else if(f0>220 && breathy<0.5 && closure>0.45){label='믹스보이스'; conf=0.7;}
+    else if(closure>=0.58 && breathy<0.4){label='진성'; conf=0.76;}
+    const notes=[];
+    if(breathy>0.5) notes.push('숨소리 비중이 높아요. 성대 접촉을 조금 더 단단히 해보세요(너무 세게 X).');
+    if(closure<0.35) notes.push('접촉감이 약합니다. NG, M 허밍으로 성대 접지 연습을 해보세요.');
+    if(jitter>0.14) notes.push('피치 흔들림이 큽니다. 리브트릴/사이렌으로 안정화하세요.');
+    if(notes.length===0) notes.push('균형이 좋아요. 같은 감각으로 5음계 패턴을 확장해보세요.');
+    return {label,conf,notes};
+  }
 
-            document.getElementById('result-animal').textContent = resultData.animal;
-            document.getElementById('result-image').src = resultData.image;
-            document.getElementById('result-image').alt = resultData.animal;
-            document.getElementById('result-description').textContent = resultData.description;
-            document.getElementById('result-tip').textContent = resultData.tip;
+  function render(type,f0,breathy,closure,jitter,form){
+    refs.voiceType.textContent=type.label; refs.confidence.textContent=`신뢰도 ${Math.round(type.conf*100)}% (휴리스틱)`;
+    refs.feedback.innerHTML=''; type.notes.forEach(n=>{const li=document.createElement('li');li.textContent=n;refs.feedback.appendChild(li);});
+    refs.f0.textContent = f0>0?`${Math.round(f0)} Hz`:'-'; refs.f0Bar.style.width=`${clamp((f0||0)/500,0,1)*100}%`;
+    refs.breath.textContent=`${Math.round(breathy*100)}%`; refs.breathBar.style.width=`${breathy*100}%`;
+    refs.closure.textContent=`${Math.round(closure*100)}%`; refs.closureBar.style.width=`${closure*100}%`;
+    refs.stability.textContent=`${Math.round((1-jitter)*100)}%`; refs.stabilityBar.style.width=`${clamp(1-jitter,0,1)*100}%`;
 
-            quizScreen.classList.add('hidden');
-            resultScreen.classList.remove('hidden');
-            resultScreen.classList.add('fade-in');
-        }
-    </script>
+    refs.formantNow.textContent=`현재: F1 ${Math.round(form.f1)||'-'} / F2 ${Math.round(form.f2)||'-'} Hz`;
+    const t = VOWELS[refs.vowelTarget.value];
+    const d1=form.f1?Math.round(form.f1-t.f1):null, d2=form.f2?Math.round(form.f2-t.f2):null;
+    refs.formantGuide.textContent = (d1===null)?'발성을 유지하면 포먼트 가이드가 나타납니다.':
+      `F1 ${d1>0?'+':''}${d1}Hz, F2 ${d2>0?'+':''}${d2}Hz 차이 | ${guideText(d1,d2)}`;
+  }
+
+  function guideText(d1,d2){
+    const a=[]; if(d1>80)a.push('입을 조금 덜 열기'); if(d1<-80)a.push('입을 조금 더 열기'); if(d2>120)a.push('혀를 뒤로/입술 라운딩'); if(d2<-120)a.push('혀를 앞쪽으로');
+    return a.length?a.join(', '):'목표에 매우 근접!';
+  }
+  function bandEnergy(freqData,sampleRate,low,high){ const hzPerBin=sampleRate/2/freqData.length; let s=0,c=0; for(let i=0;i<freqData.length;i++){const hz=i*hzPerBin; if(hz>=low&&hz<=high){s+=Math.pow(10,freqData[i]/20); c++;}} return c?s/c:0; }
+  function spectralSlope(freqData,sampleRate){ const hzPerBin=sampleRate/2/freqData.length; let sx=0,sy=0,sxy=0,sxx=0,n=0; for(let i=10;i<freqData.length;i++){const hz=i*hzPerBin; if(hz<200||hz>6000)continue; const x=Math.log10(hz),y=freqData[i]; sx+=x;sy+=y;sxy+=x*y;sxx+=x*x;n++;} return (n*sxy-sx*sy)/(n*sxx-sx*sx+1e-6); }
+  function clamp(v,min,max){ return Math.min(max,Math.max(min,v)); }
+  function drawScope(buf){ c.clearRect(0,0,canv.width,canv.height); c.strokeStyle='#34d399'; c.lineWidth=2; c.beginPath(); const step=canv.width/buf.length; for(let i=0;i<buf.length;i++){const y=(0.5+buf[i]/2)*canv.height; if(i===0)c.moveTo(0,y); else c.lineTo(i*step,y);} c.stroke(); }
+})();
+</script>
 </body>
 </html>
